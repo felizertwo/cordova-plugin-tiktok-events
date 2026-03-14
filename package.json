@@ -1,0 +1,33 @@
+{
+  "name": "cordova-plugin-tiktok-events",
+  "version": "1.0.0",
+  "description": "Cordova plugin for TikTok Events SDK - App Event Tracking & Attribution",
+  "cordova": {
+    "id": "cordova-plugin-tiktok-events",
+    "platforms": ["ios"]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ADS4U-DIGITAL/cordova-plugin-tiktok-events.git"
+  },
+  "keywords": [
+    "cordova",
+    "tiktok",
+    "events",
+    "analytics",
+    "attribution",
+    "ads",
+    "ecosystem:cordova",
+    "cordova-ios"
+  ],
+  "author": "ADS4U Digital",
+  "license": "MIT",
+  "engines": {
+    "cordovaDependencies": {
+      "1.0.0": {
+        "cordova": ">=9.0.0",
+        "cordova-ios": ">=6.0.0"
+      }
+    }
+  }
+}

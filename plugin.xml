@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        id="cordova-plugin-tiktok-events"
+        version="1.0.0">
+    
+    <name>TikTok Events SDK</name>
+    <description>Cordova plugin for TikTok Events SDK - App Event Tracking &amp; Attribution</description>
+    <license>MIT</license>
+    <keywords>cordova,tiktok,events,analytics,attribution,ads</keywords>
+    
+    <!-- Plugin Variable -->
+    <preference name="TIKTOK_APP_ID" default="" />
+    
+    <js-module src="www/TikTokEvents.js" name="TikTokEvents">
+        <clobbers target="TikTokEvents" />
+    </js-module>
+    
+    <!-- iOS -->
+    <platform name="ios">
+        <config-file target="config.xml" parent="/*">
+            <feature name="TikTokEvents">
+                <param name="ios-package" value="TikTokEventsPlugin" />
+            </feature>
+            <preference name="TikTokAppId" value="$TIKTOK_APP_ID" />
+        </config-file>
+        
+        <header-file src="src/ios/TikTokEventsPlugin.h" />
+        <source-file src="src/ios/TikTokEventsPlugin.m" />
+        
+        <!-- TikTok SDK via CocoaPods -->
+        <podspec>
+            <config>
+                <source url="https://cdn.cocoapods.org/"/>
+            </config>
+            <pods use-frameworks="true">
+                <pod name="TikTokBusinessSDK" spec="~> 1.3" />
+            </pods>
+        </podspec>
+        
+        <!-- Required frameworks -->
+        <framework src="AdSupport.framework" />
+        <framework src="AppTrackingTransparency.framework" />
+        <framework src="StoreKit.framework" />
+        
+        <!-- Info.plist for ATT -->
+        <config-file target="*-Info.plist" parent="NSUserTrackingUsageDescription">
+            <string>Diese App nutzt Tracking, um dir relevantere Werbung zu zeigen und den Erfolg von Werbekampagnen zu messen.</string>
+        </config-file>
+        
+        <!-- SKAdNetwork IDs for TikTok -->
+        <config-file target="*-Info.plist" parent="SKAdNetworkItems">
+            <array>
+                <dict>
+                    <key>SKAdNetworkIdentifier</key>
+                    <string>238da6jt44.skadnetwork</string>
+                </dict>
+                <dict>
+                    <key>SKAdNetworkIdentifier</key>
+                    <string>22mmun2rn5.skadnetwork</string>
+                </dict>
+                <dict>
+                    <key>SKAdNetworkIdentifier</key>
+                    <string>f7s53z58qe.skadnetwork</string>
+                </dict>
+            </array>
+        </config-file>
+    </platform>
+    
+</plugin>
