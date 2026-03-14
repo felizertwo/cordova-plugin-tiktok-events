@@ -27,56 +27,84 @@
 
 - (void)initialize:(CDVInvokedUrlCommand*)command {
     NSDictionary *options = [command.arguments objectAtIndex:0];
-    NSString *appId = options[@"appId"];
     
-    // Fallback: App ID aus Plugin-Variable (config.xml)
+    // Hole die IDs aus den Options oder Plugin-Variablen
+    NSString *accessToken = options[@"accessToken"];
+    NSString *appId = options[@"appId"];
+    NSString *tiktokAppId = options[@"tiktokAppId"];
+    
+    // Fallback auf Plugin-Variablen aus config.xml (Cordova konvertiert zu lowercase)
+    if (!accessToken || [accessToken length] == 0) {
+        accessToken = [self.commandDelegate.settings objectForKey:@"tiktokaccesstoken"];
+    }
     if (!appId || [appId length] == 0) {
         appId = [self.commandDelegate.settings objectForKey:@"tiktokappid"];
     }
+    if (!tiktokAppId || [tiktokAppId length] == 0) {
+        tiktokAppId = [self.commandDelegate.settings objectForKey:@"tiktoktiktokappid"];
+    }
     
+    if (self.debugEnabled) {
+        NSLog(@"[TikTokEvents] Config - accessToken: %@, appId: %@, tiktokAppId: %@", 
+              accessToken ? @"SET" : @"MISSING",
+              appId ? @"SET" : @"MISSING", 
+              tiktokAppId ? @"SET" : @"MISSING");
+    }
+    
+    // Validierung
+    if (!accessToken || [accessToken length] == 0) {
+        CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR 
+                                                    messageAsString:@"accessToken is required"];
+        [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
+        return;
+    }
     if (!appId || [appId length] == 0) {
         CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR 
-                                                    messageAsString:@"appId is required. Pass it to initialize() or set TIKTOK_APP_ID during plugin install."];
+                                                    messageAsString:@"appId is required"];
+        [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
+        return;
+    }
+    if (!tiktokAppId || [tiktokAppId length] == 0) {
+        CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR 
+                                                    messageAsString:@"tiktokAppId is required"];
         [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
         return;
     }
     
-    // Configure SDK
-    TikTokConfig *config = [TikTokConfig configWithAppId:appId];
-    
     // Debug mode
     BOOL debug = [options[@"debug"] boolValue];
+    self.debugEnabled = debug;
+    
+    // Configure SDK
+    TikTokConfig *config = [TikTokConfig configWithAccessToken:accessToken
+                                                         appId:appId
+                                                   tiktokAppId:tiktokAppId];
+    
     if (debug) {
-        self.debugEnabled = YES;
-        config.logLevel = TikTokLogLevelDebug;
-    } else {
-        NSString *logLevel = options[@"logLevel"];
-        if ([logLevel isEqualToString:@"debug"]) {
-            config.logLevel = TikTokLogLevelDebug;
-        } else if ([logLevel isEqualToString:@"info"]) {
-            config.logLevel = TikTokLogLevelInfo;
-        } else if ([logLevel isEqualToString:@"warn"]) {
-            config.logLevel = TikTokLogLevelWarn;
-        } else {
-            config.logLevel = TikTokLogLevelNone;
-        }
+        [config enableDebugMode];
+        [config setLogLevel:TikTokLogLevelDebug];
     }
     
     // Initialize SDK
     @try {
-        [TikTokBusiness initializeSdk:config];
-        self.sdkInitialized = YES;
-        
-        // Track app launch automatically
-        [TikTokBusiness trackEvent:@"LaunchApp"];
-        
-        CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK 
-                                                    messageAsString:@"SDK initialized successfully"];
-        [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
-        
-        if (self.debugEnabled) {
-            NSLog(@"[TikTokEvents] SDK initialized with appId: %@", appId);
-        }
+        [TikTokBusiness initializeSdk:config completionHandler:^(BOOL success, NSError * _Nullable error) {
+            if (success) {
+                self.sdkInitialized = YES;
+                
+                CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK 
+                                                            messageAsString:@"SDK initialized successfully"];
+                [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
+                
+                if (self.debugEnabled) {
+                    NSLog(@"[TikTokEvents] SDK initialized successfully");
+                }
+            } else {
+                NSString *errorMsg = error ? error.localizedDescription : @"Unknown error";
+                CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR 
+                                                            messageAsString:errorMsg];
+                [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
+            }
+        }];
     } @catch (NSException *exception) {
         CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR 
                                                     messageAsString:exception.reason];
@@ -85,37 +113,30 @@
 }
 
 - (void)requestTrackingAuthorization:(CDVInvokedUrlCommand*)command {
-    if (@available(iOS 14, *)) {
-        [ATTrackingManager requestTrackingAuthorizationWithCompletionHandler:^(ATTrackingManagerAuthorizationStatus status) {
-            NSString *statusString;
-            switch (status) {
-                case ATTrackingManagerAuthorizationStatusAuthorized:
-                    statusString = @"authorized";
-                    break;
-                case ATTrackingManagerAuthorizationStatusDenied:
-                    statusString = @"denied";
-                    break;
-                case ATTrackingManagerAuthorizationStatusRestricted:
-                    statusString = @"restricted";
-                    break;
-                case ATTrackingManagerAuthorizationStatusNotDetermined:
-                default:
-                    statusString = @"notDetermined";
-                    break;
-            }
-            
-            dispatch_async(dispatch_get_main_queue(), ^{
-                CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK 
-                                                            messageAsString:statusString];
-                [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
-            });
-        }];
-    } else {
-        // Pre-iOS 14 - always authorized
-        CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK 
-                                                    messageAsString:@"authorized"];
-        [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
-    }
+    [TikTokBusiness requestTrackingAuthorizationWithCompletionHandler:^(NSUInteger status) {
+        NSString *statusString;
+        switch (status) {
+            case 3: // ATTrackingManagerAuthorizationStatusAuthorized
+                statusString = @"authorized";
+                break;
+            case 2: // ATTrackingManagerAuthorizationStatusDenied
+                statusString = @"denied";
+                break;
+            case 1: // ATTrackingManagerAuthorizationStatusRestricted
+                statusString = @"restricted";
+                break;
+            case 0: // ATTrackingManagerAuthorizationStatusNotDetermined
+            default:
+                statusString = @"notDetermined";
+                break;
+        }
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK 
+                                                        messageAsString:statusString];
+            [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
+        });
+    }];
 }
 
 #pragma mark - Event Tracking
@@ -139,11 +160,18 @@
     }
     
     @try {
+        // Erstelle TikTokBaseEvent
+        TikTokBaseEvent *event = [[TikTokBaseEvent alloc] initWithEventName:eventName];
+        
+        // Properties hinzufügen
         if (properties && [properties count] > 0) {
-            [TikTokBusiness trackEvent:eventName withProperties:properties];
-        } else {
-            [TikTokBusiness trackEvent:eventName];
+            for (NSString *key in properties) {
+                [event addPropertyWithKey:key value:properties[key]];
+            }
         }
+        
+        // Event tracken
+        [TikTokBusiness trackTTEvent:event];
         
         if (self.debugEnabled) {
             NSLog(@"[TikTokEvents] Tracked event: %@ with properties: %@", eventName, properties);
@@ -171,15 +199,15 @@
     NSDictionary *userInfo = [command.arguments objectAtIndex:0];
     
     @try {
-        if (userInfo[@"email"]) {
-            [TikTokBusiness setEmail:userInfo[@"email"]];
-        }
-        if (userInfo[@"phone"]) {
-            [TikTokBusiness setPhoneNumber:userInfo[@"phone"]];
-        }
-        if (userInfo[@"externalId"]) {
-            [TikTokBusiness setExternalId:userInfo[@"externalId"]];
-        }
+        NSString *externalId = userInfo[@"externalId"];
+        NSString *externalUserName = userInfo[@"externalUserName"];
+        NSString *phoneNumber = userInfo[@"phone"];
+        NSString *email = userInfo[@"email"];
+        
+        [TikTokBusiness identifyWithExternalID:externalId
+                              externalUserName:externalUserName
+                                   phoneNumber:phoneNumber
+                                         email:email];
         
         if (self.debugEnabled) {
             NSLog(@"[TikTokEvents] User identified");
@@ -203,12 +231,10 @@
     }
     
     @try {
-        [TikTokBusiness setEmail:nil];
-        [TikTokBusiness setPhoneNumber:nil];
-        [TikTokBusiness setExternalId:nil];
+        [TikTokBusiness logout];
         
         if (self.debugEnabled) {
-            NSLog(@"[TikTokEvents] User cleared");
+            NSLog(@"[TikTokEvents] User logged out");
         }
         
         CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
@@ -223,15 +249,16 @@
 #pragma mark - Utility
 
 - (void)getVersion:(CDVInvokedUrlCommand*)command {
-    NSString *version = @"1.0.0"; // Plugin version
+    NSString *version = [TikTokBusiness getSDKVersion];
     CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK 
                                                 messageAsString:version];
     [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
 }
 
 - (void)isInitialized:(CDVInvokedUrlCommand*)command {
+    BOOL initialized = [TikTokBusiness isInitialized];
     CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK 
-                                                  messageAsBool:self.sdkInitialized];
+                                                  messageAsBool:initialized];
     [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
 }
 
@@ -239,12 +266,8 @@
     BOOL enabled = [[command.arguments objectAtIndex:0] boolValue];
     self.debugEnabled = enabled;
     
-    if (self.sdkInitialized) {
-        if (enabled) {
-            // Note: Log level can only be set during initialization
-            // This is a runtime flag for plugin logging
-            NSLog(@"[TikTokEvents] Debug logging enabled");
-        }
+    if (enabled) {
+        NSLog(@"[TikTokEvents] Debug logging enabled");
     }
     
     CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];

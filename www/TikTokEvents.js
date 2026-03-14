@@ -1,8 +1,15 @@
 /**
  * TikTok Events SDK - Cordova Plugin
  * 
+ * Installation:
+ *   cordova plugin add cordova-plugin-tiktok-events \
+ *     --variable TIKTOK_ACCESS_TOKEN=xxx \
+ *     --variable TIKTOK_APP_ID=xxx \
+ *     --variable TIKTOK_TIKTOK_APP_ID=xxx
+ * 
  * Usage:
- *   TikTokEvents.initialize({ appId: 'YOUR_TIKTOK_APP_ID' }, success, error);
+ *   TikTokEvents.requestTrackingAuthorization(success, error);
+ *   TikTokEvents.initialize({ debug: true }, success, error);
  *   TikTokEvents.trackEvent('Purchase', { value: 9.99, currency: 'EUR' }, success, error);
  */
 
@@ -13,9 +20,10 @@ var TikTokEvents = {
     /**
      * Initialize the TikTok Events SDK
      * @param {Object} options - Configuration options
-     * @param {string} options.appId - Your TikTok App ID (optional if set via TIKTOK_APP_ID variable)
+     * @param {string} options.accessToken - TikTok Access Token (optional if set via variable)
+     * @param {string} options.appId - TikTok App ID (optional if set via variable)
+     * @param {string} options.tiktokAppId - TikTok TikTok App ID (optional if set via variable)
      * @param {boolean} options.debug - Enable debug mode (optional, default: false)
-     * @param {string} options.logLevel - Log level: 'none', 'info', 'warn', 'debug' (optional)
      * @param {Function} success - Success callback
      * @param {Function} error - Error callback
      */
@@ -41,16 +49,16 @@ var TikTokEvents = {
      * @param {Function} success - Success callback
      * @param {Function} error - Error callback
      * 
-     * Standard Events:
-     *   - LaunchApp, InstallApp
-     *   - CompleteRegistration, Login
-     *   - ViewContent, Search
-     *   - AddToCart, AddToWishlist
-     *   - InitiateCheckout, AddPaymentInfo
-     *   - Purchase, Subscribe
+     * Standard Events (use TTEventName constants):
+     *   - LaunchAPP, InstallApp
+     *   - Registration, Login
+     *   - Search
+     *   - AddPaymentInfo
+     *   - Subscribe, StartTrial
      *   - CompleteTutorial, AchieveLevel
      *   - CreateGroup, JoinGroup
      *   - SpendCredits, UnlockAchievement
+     *   - GenerateLead, Rate
      * 
      * Common Properties:
      *   - value (number): Monetary value
@@ -92,7 +100,7 @@ var TikTokEvents = {
      * @param {Function} error - Error callback
      */
     trackRegistration: function(method, success, error) {
-        this.trackEvent('CompleteRegistration', { method: method }, success, error);
+        this.trackEvent('Registration', { method: method }, success, error);
     },
     
     /**
@@ -133,9 +141,10 @@ var TikTokEvents = {
     /**
      * Identify user (for advanced matching)
      * @param {Object} userInfo - User information
-     * @param {string} userInfo.email - User email (will be hashed)
-     * @param {string} userInfo.phone - User phone (will be hashed)
+     * @param {string} userInfo.email - User email (will be hashed by SDK)
+     * @param {string} userInfo.phone - User phone (will be hashed by SDK)
      * @param {string} userInfo.externalId - External user ID
+     * @param {string} userInfo.externalUserName - External username
      * @param {Function} success - Success callback
      * @param {Function} error - Error callback
      */
@@ -153,7 +162,7 @@ var TikTokEvents = {
     },
     
     /**
-     * Get current SDK version
+     * Get TikTok SDK version
      * @param {Function} success - Success callback with version string
      * @param {Function} error - Error callback
      */

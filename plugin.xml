@@ -2,15 +2,17 @@
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
         xmlns:android="http://schemas.android.com/apk/res/android"
         id="cordova-plugin-tiktok-events"
-        version="1.0.0">
+        version="1.0.1">
     
     <name>TikTok Events SDK</name>
     <description>Cordova plugin for TikTok Events SDK - App Event Tracking &amp; Attribution</description>
     <license>MIT</license>
     <keywords>cordova,tiktok,events,analytics,attribution,ads</keywords>
     
-    <!-- Plugin Variable -->
+    <!-- Plugin Variables -->
+    <preference name="TIKTOK_ACCESS_TOKEN" default="" />
     <preference name="TIKTOK_APP_ID" default="" />
+    <preference name="TIKTOK_TIKTOK_APP_ID" default="" />
     
     <js-module src="www/TikTokEvents.js" name="TikTokEvents">
         <clobbers target="TikTokEvents" />
@@ -22,7 +24,9 @@
             <feature name="TikTokEvents">
                 <param name="ios-package" value="TikTokEventsPlugin" />
             </feature>
+            <preference name="TikTokAccessToken" value="$TIKTOK_ACCESS_TOKEN" />
             <preference name="TikTokAppId" value="$TIKTOK_APP_ID" />
+            <preference name="TikTokTikTokAppId" value="$TIKTOK_TIKTOK_APP_ID" />
         </config-file>
         
         <header-file src="src/ios/TikTokEventsPlugin.h" />

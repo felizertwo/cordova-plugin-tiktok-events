@@ -5,19 +5,23 @@ Cordova Plugin für das TikTok Events SDK (iOS) – App Event Tracking & Attribu
 ## Installation
 
 ```bash
-cordova plugin add /pfad/zu/cordova-plugin-tiktok-events --variable TIKTOK_APP_ID=deine_app_id
+cordova plugin add /pfad/zu/cordova-plugin-tiktok-events \
+  --variable TIKTOK_ACCESS_TOKEN=dein_access_token \
+  --variable TIKTOK_APP_ID=deine_app_id \
+  --variable TIKTOK_TIKTOK_APP_ID=deine_tiktok_app_id
 
 # oder von GitHub
-cordova plugin add https://github.com/ADS4U-DIGITAL/cordova-plugin-tiktok-events.git --variable TIKTOK_APP_ID=deine_app_id
+cordova plugin add https://github.com/felizertwo/cordova-plugin-tiktok-events.git \
+  --variable TIKTOK_ACCESS_TOKEN=dein_access_token \
+  --variable TIKTOK_APP_ID=deine_app_id \
+  --variable TIKTOK_TIKTOK_APP_ID=deine_tiktok_app_id
 ```
-
-Die `TIKTOK_APP_ID` wird beim Build in die App eingebettet – du musst sie nicht mehr im Code angeben.
 
 ## Voraussetzungen
 
 - Cordova iOS >= 6.0.0
 - iOS >= 12.0
-- TikTok for Business Account mit App ID
+- TikTok for Business Account
 
 ## Setup
 
@@ -25,7 +29,10 @@ Die `TIKTOK_APP_ID` wird beim Build in die App eingebettet – du musst sie nich
 
 1. Geh zu [TikTok Ads Manager](https://ads.tiktok.com/)
 2. Erstelle eine App unter **Assets → Events → App Events**
-3. Kopiere die **App ID** (nicht die Pixel ID!)
+3. Hole dir die drei IDs:
+   - **Access Token** – aus den Marketing API Settings
+   - **App ID** – Events Manager App ID
+   - **TikTok App ID** – TikTok App ID
 
 ### 2. App Tracking Transparency (iOS 14+)
 
@@ -53,7 +60,7 @@ document.addEventListener('deviceready', function() {
     TikTokEvents.requestTrackingAuthorization(function(status) {
         console.log('ATT Status:', status); // authorized, denied, restricted, notDetermined
         
-        // 2. Dann SDK initialisieren (App ID kommt aus der Plugin-Variable)
+        // 2. Dann SDK initialisieren (IDs kommen aus den Plugin-Variablen)
         TikTokEvents.initialize({
             debug: true  // Für Entwicklung
         }, function() {
@@ -66,8 +73,8 @@ document.addEventListener('deviceready', function() {
 }, false);
 ```
 
-> **Hinweis:** Die App ID wird automatisch aus der `TIKTOK_APP_ID` Variable gelesen.  
-> Du kannst sie auch manuell übergeben: `{ appId: 'xxx', debug: true }`
+> **Hinweis:** Die IDs werden automatisch aus den Plugin-Variablen gelesen.  
+> Du kannst sie auch manuell übergeben: `{ accessToken: 'xxx', appId: 'xxx', tiktokAppId: 'xxx' }`
 
 ### Events tracken
 
@@ -102,31 +109,30 @@ TikTokEvents.trackViewContent('video-456', 'video', {
 
 | Event | Beschreibung |
 |-------|-------------|
-| `LaunchApp` | App gestartet (automatisch bei init) |
+| `LaunchAPP` | App gestartet |
 | `InstallApp` | App installiert |
-| `CompleteRegistration` | Registrierung abgeschlossen |
+| `Registration` | Registrierung abgeschlossen |
 | `Login` | User eingeloggt |
-| `ViewContent` | Inhalt angesehen |
 | `Search` | Suche durchgeführt |
-| `AddToCart` | Zum Warenkorb hinzugefügt |
-| `AddToWishlist` | Zur Wunschliste hinzugefügt |
-| `InitiateCheckout` | Checkout gestartet |
 | `AddPaymentInfo` | Zahlungsinfo hinzugefügt |
-| `Purchase` | Kauf abgeschlossen |
 | `Subscribe` | Abo abgeschlossen |
+| `StartTrial` | Trial gestartet |
 | `CompleteTutorial` | Tutorial beendet |
 | `AchieveLevel` | Level erreicht |
 | `SpendCredits` | Credits ausgegeben |
 | `UnlockAchievement` | Achievement freigeschaltet |
+| `GenerateLead` | Lead generiert |
+| `Rate` | Bewertung abgegeben |
 
 ### User Identifizierung (Advanced Matching)
 
 ```javascript
-// User identifizieren (Daten werden gehasht)
+// User identifizieren (Daten werden vom SDK gehasht)
 TikTokEvents.identifyUser({
     email: 'user@example.com',
     phone: '+491234567890',
-    externalId: 'user-id-123'
+    externalId: 'user-id-123',
+    externalUserName: 'username'
 });
 
 // Bei Logout
@@ -141,9 +147,9 @@ TikTokEvents.isInitialized(function(initialized) {
     console.log('Initialisiert:', initialized);
 });
 
-// Version
+// SDK Version
 TikTokEvents.getVersion(function(version) {
-    console.log('Plugin Version:', version);
+    console.log('SDK Version:', version);
 });
 
 // Debug an/aus
@@ -155,9 +161,9 @@ TikTokEvents.setDebug(true);
 Beispiel für typische SwipeCheck Events:
 
 ```javascript
-// App Start (App ID kommt aus Plugin-Variable)
+// App Start (IDs kommen aus Plugin-Variablen)
 TikTokEvents.initialize({ debug: false }, function() {
-    TikTokEvents.trackEvent('LaunchApp');
+    console.log('TikTok ready');
 });
 
 // User registriert sich
@@ -170,12 +176,6 @@ TikTokEvents.trackEvent('ViewContent', {
     description: productName
 });
 
-// User liked ein Produkt (AddToWishlist)
-TikTokEvents.trackEvent('AddToWishlist', {
-    content_id: productId,
-    content_type: 'product'
-});
-
 // User kauft Premium
 TikTokEvents.trackPurchase(4.99, 'EUR', {
     content_id: 'swipecheck-premium',
@@ -186,14 +186,14 @@ TikTokEvents.trackPurchase(4.99, 'EUR', {
 ## Debugging
 
 1. `debug: true` bei `initialize()` setzen
-2. In Xcode Console nach `[TikTokEvents]` filtern
+2. In Xcode Console nach `[TikTokEvents]` und `[TikTok]` filtern
 3. Im TikTok Ads Manager unter **Events → Test Events** prüfen
 
 ## Bekannte Einschränkungen
 
 - Nur iOS (Android kommt bei Bedarf)
 - TikTok SDK Version ~1.3 (via CocoaPods)
-- ATT-Dialog muss **vor** dem Initialize aufgerufen werden für beste Ergebnisse
+- ATT-Dialog wird vom SDK automatisch unterstützt
 
 ## Lizenz
 
