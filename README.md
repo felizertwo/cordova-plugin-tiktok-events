@@ -47,8 +47,8 @@ Du brauchst 3 IDs:
 | ID | Wo zu finden |
 |----|--------------|
 | **Access Token** | TikTok Ads Manager → Tools → Events → App auswählen → Einstellungen |
-| **App ID** | TikTok Ads Manager → App-ID (z.B. `6752519479`) |
-| **TikTok App ID** | TikTok Ads Manager → TikTok-App-ID (lange Nummer, z.B. `7581137507597680658`) |
+| **App ID** | TikTok Ads Manager → App-ID (z.B. `1234567890`) |
+| **TikTok App ID** | TikTok Ads Manager → TikTok-App-ID (lange Nummer, z.B. `1234567890123456789`) |
 
 ### Schritt 3: Plugin installieren
 
